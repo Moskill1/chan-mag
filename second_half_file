@@ -1,0 +1,75 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/wait.h>
+
+#define MAX_COMMAND_LENGTH 1024
+#define MAX_NUM_ARGUMENTS 64
+
+void execute_command(char *command);
+
+int main(void) {
+    char input[MAX_COMMAND_LENGTH];
+    char *args[MAX_NUM_ARGUMENTS];
+
+    while (1) {
+        // Print shell prompt
+        printf("my_shell$ ");
+        fflush(stdout);
+
+        // Read command from stdin
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            // Break the loop on EOF
+            break;
+        }
+
+        // Remove trailing newline character
+        input[strcspn(input, "\n")] = '\0';
+
+        // Tokenize the input into arguments
+        char *token;
+        int num_args = 0;
+        token = strtok(input, " ");
+        while (token != NULL) {
+            args[num_args++] = token;
+            token = strtok(NULL, " ");
+        }
+        args[num_args] = NULL; // Set last argument to NULL for execvp
+
+        // Execute the command
+        if (num_args > 0) {
+            execute_command(args[0]);
+        }
+    }
+
+    return 0;
+}
+
+void execute_command(char *command) {
+    // Fork a child process
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+        // Child process
+
+        // Execute the command using execvp
+        if (execvp(command, args) == -1) {
+            perror("execvp");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        // Parent process
+        int status;
+        waitpid(pid, &status, 0); // Wait for child process to complete
+
+        // Check for abnormal termination of child process
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            printf("Command terminated abnormally with status: %d\n", WEXITSTATUS(status));
+        }
+    }
+}
