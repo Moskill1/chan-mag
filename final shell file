@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#define BUFFER_SIZE 1024
+
+/**
+ * main - Entry point of the simple_shell program
+ *
+ * Return: Always 0
+ */
+int main(void)
+{
+    char *buffer = NULL;    /* Buffer to store user input */
+    size_t bufsize = 0;    /* Size of the buffer */
+    ssize_t n_read;        /* Number of characters read by getline */
+    pid_t child_pid;       /* Child process ID */
+    int status;            /* Status of the child process */
+
+    while (1)
+    {
+        printf("$ "); /* Display the prompt */
+        n_read = getline(&buffer, &bufsize, stdin); /* Read user input */
+        if (n_read == -1)
+        {
+            if (feof(stdin))
+            {
+                /* Exit on end of file (Ctrl+D) */
+                printf("\n");
+                exit(EXIT_SUCCESS);
+            }
+            else
+            {
+                perror("getline");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        /* Remove the newline character at the end of the input */
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        /* Fork a child process */
+        child_pid = fork();
+        if (child_pid == -1)
+        {
+            perror("fork");
+            exit(EXIT_FAILURE);
+        }
+        else if (child_pid == 0)
+        {
+            /* Child process */
+            /* Execute the command entered by the user */
+            if (execve(buffer, NULL, NULL) == -1)
+            {
+                perror("execve");
+                exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            /* Parent process */
+            /* Wait for the child process to terminate */
+            waitpid(child_pid, &status, 0);
+        }
+    }
+
+    /* Free allocated memory */
+    free(buffer);
+
+    return 0;
+}
