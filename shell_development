@@ -1,0 +1,123 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+
+#define MAX_COMMAND_LENGTH 1024
+#define MAX_ARGUMENTS 64
+#define MAX_BACKGROUND_PROCESSES 64
+
+void execute_command(char *command);
+void handle_signals();
+void redirect_input_output(char *input_file, char *output_file);
+void change_directory(char *directory);
+void print_prompt();
+void handle_background_processes();
+
+int main() {
+    char input[MAX_COMMAND_LENGTH];
+    char *args[MAX_ARGUMENTS];
+    int num_args;
+    pid_t pid;
+    int background_processes[MAX_BACKGROUND_PROCESSES];
+    int num_background_processes = 0;
+    
+    while (1) {
+        print_prompt();
+        
+        // Read input from user
+        if (fgets(input, MAX_COMMAND_LENGTH, stdin) == NULL) {
+            printf("\n");
+            break;
+        }
+        
+        // Parse input to get command and arguments
+        num_args = 0;
+        args[num_args] = strtok(input, " \t\n");
+        while (args[num_args] != NULL) {
+            num_args++;
+            args[num_args] = strtok(NULL, " \t\n");
+        }
+        
+        if (num_args == 0) {
+            continue; // Empty command, prompt again
+        }
+        
+        // Check for background process
+        int background = 0;
+        if (strcmp(args[num_args - 1], "&") == 0) {
+            args[num_args - 1] = NULL;
+            background = 1;
+        }
+        
+        // Execute command
+        pid = fork();
+        if (pid < 0) {
+            perror("fork");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) {
+            // Child process
+            execute_command(args[0]);
+            exit(EXIT_SUCCESS);
+        } else {
+            // Parent process
+            if (background) {
+                // Add child process to background process list
+                background_processes[num_background_processes++] = pid;
+            } else {
+                // Wait for child process to complete
+                waitpid(pid, NULL, 0);
+            }
+        }
+        
+        // Handle signals
+        handle_signals();
+        
+        // Redirect input/output if necessary
+        redirect_input_output(NULL, NULL); // Placeholder, implement as needed
+        
+        // Change directory if necessary
+        if (strcmp(args[0], "cd") == 0) {
+            change_directory(args[1]);
+        }
+        
+        // Manage background processes
+        handle_background_processes();
+    }
+    
+    return 0;
+}
+
+void execute_command(char *command) {
+    // Implementation of executing a command in the shell
+    execvp(command, args);
+    perror("execvp");
+    exit(EXIT_FAILURE);
+}
+
+void handle_signals() {
+    // Implementation of handling signals in the shell
+    // For example, handling SIGINT and SIGTSTP signals to terminate or suspend child processes
+}
+
+void redirect_input_output(char *input_file, char *output_file) {
+    // Implementation of redirecting input/output in the shell
+    // For example, using dup2() system call to redirect stdin or stdout
+}
+
+void change_directory(char *directory) {
+    // Implementation of changing directory in the shell
+    // For example, using chdir() system call to change the current working directory
+}
+
+void print_prompt() {
+    // Implementation of printing the shell prompt
+    printf("$ ");
+}
+
+void handle_background_processes() {
+    // Implementation of handling background processes in the shell
+
