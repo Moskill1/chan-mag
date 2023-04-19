@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/wait.h>
+
+#define PROMPT "$ "
+
+/**
+ * main - simple shell interpreter
+ *
+ * Return: Always 0.
+ */
+int main(void)
+{
+    char *buffer = NULL;
+    size_t bufsize = 0;
+    ssize_t nread;
+    pid_t pid;
+    int status;
+
+    while (1)
+    {
+        printf(PROMPT);
+        nread = getline(&buffer, &bufsize, stdin);
+        if (nread == -1)
+        {
+            if (feof(stdin))
+            {
+                putchar('\n');
+                exit(EXIT_SUCCESS);
+            }
+            else
+            {
+                perror("getline");
+                exit(EXIT_FAILURE);
+            }
+        }
+        buffer[nread - 1] = '\0'; /* remove newline */
+
+        pid = fork();
+        if (pid == -1)
+        {
+            perror("fork");
+            exit(EXIT_FAILURE);
+        }
+        else if (pid == 0)
+        {
+            /* child process */
+            execlp(buffer, buffer, (char *)NULL);
+            /* if execlp returns, there was an error */
+            perror(buffer);
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            /* parent process */
+            waitpid(pid, &status, 0);
+        }
+    }
+    /* unreachable */
+    return (0);
+}
