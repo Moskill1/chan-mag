@@ -1,0 +1,138 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <signal.h>
+
+#define BUFFER_SIZE 1024
+#define TOKEN_DELIM " \t\r\n\a"
+
+int execute_command(char **args);
+char **split_command_line(char *line);
+int launch_program(char **args);
+int is_builtin(char **args);
+int cd_builtin(char **args);
+int help_builtin(char **args);
+int exit_builtin(char **args);
+
+int main(int argc, char **argv, char **envp)
+{
+    char *line;
+    char **args;
+    int status;
+
+    do {
+        printf("$ ");
+        line = (char *) malloc(BUFFER_SIZE * sizeof(char));
+        fgets(line, BUFFER_SIZE, stdin);
+        args = split_command_line(line);
+        status = execute_command(args);
+
+        free(line);
+        free(args);
+    } while (status);
+
+    return 0;
+}
+
+int execute_command(char **args)
+{
+    if (args[0] == NULL) {
+        return 1;
+    }
+
+    if (is_builtin(args)) {
+        return 1;
+    }
+
+    return launch_program(args);
+}
+
+char **split_command_line(char *line)
+{
+    int bufsize = BUFFER_SIZE;
+    int pos = 0;
+    char **tokens = (char **) malloc(bufsize * sizeof(char *));
+    char *token;
+
+    if (!tokens) {
+        fprintf(stderr, "Allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    token = strtok(line, TOKEN_DELIM);
+    while (token != NULL) {
+        tokens[pos++] = token;
+
+        if (pos >= bufsize) {
+            bufsize += BUFFER_SIZE;
+            tokens = (char **) realloc(tokens, bufsize * sizeof(char *));
+            if (!tokens) {
+                fprintf(stderr, "Allocation error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        token = strtok(NULL, TOKEN_DELIM);
+    }
+
+    tokens[pos] = NULL;
+    return tokens;
+}
+
+int launch_program(char **args)
+{
+    pid_t pid, wpid;
+    int status;
+
+    pid = fork();
+    if (pid == 0) {
+        if (execve(args[0], args, environ) == -1) {
+            perror("execve");
+        }
+        exit(EXIT_FAILURE);
+    } else if (pid < 0) {
+        perror("fork");
+    } else {
+        do {
+            wpid = waitpid(pid, &status, WUNTRACED);
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+
+    return 1;
+}
+
+int is_builtin(char **args)
+{
+    if (strcmp(args[0], "cd") == 0) {
+        return cd_builtin(args);
+    } else if (strcmp(args[0], "help") == 0) {
+        return help_builtin(args);
+    } else if (strcmp(args[0], "exit") == 0) {
+        return exit_builtin(args);
+    } else {
+        return 0;
+    }
+}
+
+int cd_builtin(char **args)
+{
+    if (args[1] == NULL) {
+        fprintf(stderr, "Missing argument to \"cd\"\n");
+    } else {
+        if (chdir(args[1]) != 0) {
+            perror("chdir");
+        }
+    }
+    return 1;
+}
+
+int help_builtin(char **args)
+{
+    printf("Simple shell version 0.1\n");
+    printf
+
