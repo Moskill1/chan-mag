@@ -1,0 +1,152 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <errno.h>
+
+#define MAX_ARGS 64
+#define MAX_ARG_LEN 256
+#define MAX_PATHS 64
+#define MAX_PATH_LEN 1024
+
+extern char **environ;
+
+int execute(char **args);
+int find_executable(char *name, char *path);
+char **parse_args(char *input);
+char **parse_path();
+char *read_input();
+void print_prompt();
+void print_error(char *command, char *error);
+void handle_signal(int sig);
+
+int main(int argc, char **argv)
+{
+    signal(SIGINT, handle_signal);
+
+    char *input;
+    char **args;
+    int status;
+
+    while (1) {
+        print_prompt();
+
+        input = read_input();
+        if (!input) {
+            continue;
+        }
+
+        args = parse_args(input);
+        if (!args || !args[0]) {
+            free(input);
+            free(args);
+            continue;
+        }
+
+        status = execute(args);
+
+        free(input);
+        free(args);
+
+        if (status == -1) {
+            break;
+        }
+    }
+
+    return 0;
+}
+
+int execute(char **args)
+{
+    int status;
+    pid_t pid;
+
+    pid = fork();
+    if (pid == -1) {
+        print_error(args[0], strerror(errno));
+        return 1;
+    }
+
+    if (pid == 0) {
+        /* child process */
+        if (execve(args[0], args, environ) == -1) {
+            print_error(args[0], strerror(errno));
+            return 1;
+        }
+        _exit(EXIT_FAILURE);
+    } else {
+        /* parent process */
+        do {
+            waitpid(pid, &status, WUNTRACED);
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+
+    return 0;
+}
+
+int find_executable(char *name, char *path)
+{
+    char *tok;
+    char tmp[MAX_PATH_LEN];
+    int found = 0;
+
+    char *paths[MAX_PATHS];
+    int i, num_paths = 0;
+
+    /* parse path */
+    tok = strtok(path, ":");
+    while (tok != NULL && num_paths < MAX_PATHS) {
+        paths[num_paths++] = tok;
+        tok = strtok(NULL, ":");
+    }
+
+    /* search for executable */
+    for (i = 0; i < num_paths; i++) {
+        snprintf(tmp, MAX_PATH_LEN, "%s/%s", paths[i], name);
+        if (access(tmp, X_OK) == 0) {
+            found = 1;
+            break;
+        }
+    }
+
+    if (found) {
+        return i;
+    } else {
+        return -1;
+    }
+}
+
+char **parse_args(char *input)
+{
+    char **args = malloc(MAX_ARGS * sizeof(char *));
+    if (!args) {
+        return NULL;
+    }
+
+    char *tok;
+    int i = 0;
+
+    tok = strtok(input, " \t\n");
+    while (tok != NULL && i < MAX_ARGS - 1) {
+        args[i++] = tok;
+        tok = strtok(NULL, " \t\n");
+    }
+    args[i] = NULL;
+
+    return args;
+}
+
+char **parse_path()
+{
+    char *path = getenv("PATH");
+    if (!path) {
+        return NULL;
+    }
+
+    char **paths = malloc(MAX_PATHS
+
