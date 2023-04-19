@@ -1,0 +1,139 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+
+#define BUFFER_SIZE 1024
+#define DELIMITER " \t\n\r"
+
+/**
+ * _getline - Read an entire line from a file descriptor
+ * @fd: File descriptor to read from
+ *
+ * Return: Pointer to the buffer containing the line, or NULL on failure
+ */
+char *_getline(int fd)
+{
+	char buffer[BUFFER_SIZE];
+	char *line = NULL;
+	ssize_t n_read;
+	size_t line_len = 0;
+
+	n_read = read(fd, buffer, BUFFER_SIZE);
+	if (n_read <= 0)
+		return (NULL);
+
+	line = malloc(n_read + 1);
+	if (!line)
+		return (NULL);
+
+	do {
+		char *newline = memchr(buffer, '\n', n_read);
+		if (newline)
+			n_read = newline - buffer + 1;
+
+		memcpy(line + line_len, buffer, n_read);
+		line_len += n_read;
+
+		if (newline || n_read < BUFFER_SIZE)
+			break;
+
+		n_read = read(fd, buffer, BUFFER_SIZE);
+		if (n_read < 0)
+			return (NULL);
+
+	} while (n_read > 0);
+
+	line[line_len] = '\0';
+	return (line);
+}
+
+/**
+ * split_line - Split a string into an array of tokens
+ * @line: String to split
+ *
+ * Return: Pointer to the array of tokens, or NULL on failure
+ */
+char **split_line(char *line)
+{
+	char **tokens = NULL;
+	char *token;
+	size_t n_tokens = 0;
+
+	token = strtok(line, DELIMITER);
+	while (token)
+	{
+		tokens = realloc(tokens, sizeof(char *) * (n_tokens + 1));
+		if (!tokens)
+			return (NULL);
+
+		tokens[n_tokens] = token;
+		n_tokens++;
+
+		token = strtok(NULL, DELIMITER);
+	}
+
+	tokens = realloc(tokens, sizeof(char *) * (n_tokens + 1));
+	if (!tokens)
+		return (NULL);
+
+	tokens[n_tokens] = NULL;
+	return (tokens);
+}
+
+/**
+ * execute_command - Execute a command with the given arguments
+ * @args: Array of arguments, with the first element being the command itself
+ * @path: Array of directories to search for the command in
+ *
+ * Return: 0 on success, -1 on failure
+ */
+int execute_command(char **args, char **path)
+{
+	pid_t child_pid;
+	char *command_path;
+	int i;
+
+	if (!args || !args[0])
+		return (-1);
+
+	command_path = args[0];
+	if (access(command_path, F_OK) == -1)
+	{
+		for (i = 0; path && path[i]; i++)
+		{
+			command_path = malloc(strlen(path[i]) + strlen(args[0]) + 2);
+			if (!command_path)
+				return (-1);
+
+			sprintf(command_path, "%s/%s", path[i], args[0]);
+			if (access(command_path, F_OK) == 0)
+				break;
+
+			free(command_path);
+			command_path = args[0];
+		}
+	}
+
+	if (access(command_path, F_OK) == -1)
+		return (-1);
+
+	child_pid = fork();
+	if (child_pid == -1)
+		return (-1);
+
+	if (child_pid == 0)
+	{
+		execve(command_path, args, NULL);
+		_exit(EXIT_FAILURE);
+	}
+
+	wait(NULL);
+	return (0);
+}
+
+/**
+ * main - Simple command line interpreter
+ * @
+
