@@ -1,0 +1,195 @@
+#include "holberton.h"
+#include "shell.h"
+
+
+/**
+ * main - Entry point for the shell program
+ *
+ * Return: 0 on success, 1 on error
+ */
+int main(void)
+{
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read = 0;
+    char **args = NULL;
+
+    while (1)
+    {
+        printf("$ ");
+        read = getline(&line, &len, stdin);
+        if (read == -1)
+        {
+            free(line);
+            exit(0);
+        }
+        if (*line == '\n')
+        {
+            continue;
+        }
+        args = tokenizer(line);
+        if (args == NULL)
+        {
+            continue;
+        }
+        if (builtins(args) == 0)
+        {
+            free(args);
+            continue;
+        }
+        launch(args);
+        free(args);
+    }
+
+    return (0);
+}
+
+/**
+ * tokenizer - Tokenize input string into arguments
+ * @input: Input string to tokenize
+ *
+ * Return: Array of strings containing arguments
+ */
+char **tokenizer(char *input)
+{
+    const char *delimiter = " \t\r\n\a";
+    char **tokens = NULL;
+    char *token = NULL;
+    int i, count = 0;
+
+    for (i = 0; input[i]; i++)
+    {
+        if (input[i] != ' ')
+        {
+            count++;
+            while (input[i] != ' ' && input[i])
+            {
+                i++;
+            }
+        }
+    }
+
+    tokens = malloc(sizeof(char *) * (count + 1));
+    if (tokens == NULL)
+    {
+        return (NULL);
+    }
+
+    token = strtok(input, delimiter);
+    for (i = 0; token != NULL; i++)
+    {
+        tokens[i] = token;
+        token = strtok(NULL, delimiter);
+    }
+    tokens[i] = NULL;
+
+    return (tokens);
+}
+
+/**
+ * builtins - Execute built-in commands
+ * @args: Array of arguments
+ *
+ * Return: 0 if command is built-in, 1 otherwise
+ */
+int builtins(char **args)
+{
+    if (strcmp(args[0], "exit") == 0)
+    {
+        free(args);
+        exit(0);
+    }
+    if (strcmp(args[0], "cd") == 0)
+    {
+        if (args[1] == NULL)
+        {
+            fprintf(stderr, "cd: no directory specified\n");
+        }
+        else if (chdir(args[1]) != 0)
+        {
+            fprintf(stderr, "cd: %s: %s\n", args[1], strerror(errno));
+        }
+        return (0);
+    }
+    if (strcmp(args[0], "help") == 0)
+    {
+        printf("Simple Shell\n");
+        printf("Usage: ./hsh\n");
+        printf("Commands:\n");
+        printf("  exit  - Exit the shell\n");
+        printf("  cd    - Change the current directory\n");
+        printf("  help  - Display this help message\n");
+        return (0);
+    }
+
+    return (1);
+}
+
+/**
+ * launch - Execute non-built-in commands
+ * @args: Array of arguments
+ */
+void launch(char **args)
+{
+    pid_t pid;
+    int status;
+
+    pid = fork();
+    if (pid == 0)
+    {
+        if (execvp(args[0], args) == -1)
+        {
+            fprintf(stderr, "Error: command not found: %s\n", args[0]);
+        }
+        exit(1);
+
+/**
+ * main - Entry point for the shell
+ * @ac: Argument count
+ * @av: Argument vector
+ * @env: Environment variables
+ * Return: 0 on success, 1 on failure
+ */
+int main(int ac, char **av, char **env)
+{
+        char *input = NULL, **args = NULL;
+        size_t input_len = 0;
+        ssize_t input_read = 0;
+        int status = 0;
+
+        /* Set up signal handling */
+        signal(SIGINT, sigint_handler);
+
+        /* Loop indefinitely for input */
+        while (1)
+        {
+                /* Print the prompt */
+                write(STDOUT_FILENO, "$ ", 2);
+
+                /* Read input from the user */
+                input_read = getline(&input, &input_len, stdin);
+                if (input_read == -1)
+                        break;
+
+                /* Tokenize input into arguments */
+                args = tokenize_input(input, input_read);
+                if (args == NULL)
+                {
+                        perror("Error");
+                        continue;
+                }
+
+                /* Execute the command with arguments */
+                status = execute(args, env);
+
+                /* Free allocated memory */
+                free(input);
+                free(args);
+
+                /* Exit if status is 1 */
+                if (status == 1)
+                        break;
+        }
+
+        return (0);
+}
