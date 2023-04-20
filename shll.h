@@ -32,13 +32,15 @@
 extern char **environ;
 
 /* Structures*/
-typedef struct liststr {
+typedef struct liststr
+{
     int num;
     char *str;
     struct liststr *next;
 } list_t;
 
-typedef struct passinfo {
+typedef struct passinfo
+{
     char *arg;
     char **argv;
     char *path;
@@ -59,7 +61,8 @@ typedef struct passinfo {
     int histcount;
 } info_t;
 
-typedef struct builtin {
+typedef struct builtin
+{
     char *type;
     int (*func)(info_t *);
 } builtin_table;
@@ -75,7 +78,8 @@ void fork_cmd(info_t *);
 {NULL, NULL, NULL, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, \
         0, 0, 0}
 
-#endif /* _SHELL_H_ */
+#endif 
+/* _SHELL_H_ */
 
 /* toem_parser.h */
 #ifndef TOEM_PARSER_H
