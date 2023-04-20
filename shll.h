@@ -34,37 +34,37 @@ extern char **environ;
 /* Structures*/
 typedef struct liststr
 {
-    int num;
-    char *str;
-    struct liststr *next;
+int num;
+char *str;
+struct liststr *next;
 } list_t;
 
 typedef struct passinfo
 {
-    char *arg;
-    char **argv;
-    char *path;
-    int argc;
-    unsigned int line_count;
-    int err_num;
-    int linecount_flag;
-    char *fname;
-    list_t *env;
-    list_t *history;
-    list_t *alias;
-    char **environ;
-    int env_changed;
-    int status;
-    char **cmd_buf;
-    int cmd_buf_type;
-    int readfd;
-    int histcount;
+char *arg;
+char **argv;
+char *path;
+int argc;
+unsigned int line_count;
+int err_num;
+int linecount_flag;
+char *fname;
+list_t *env;
+list_t *history;
+list_t *alias;
+char **environ;
+int env_changed;
+int status;
+char **cmd_buf;
+int cmd_buf_type;
+int readfd;
+int histcount;
 } info_t;
 
 typedef struct builtin
 {
-    char *type;
-    int (*func)(info_t *);
+char *type;
+int (*func)(info_t *);
 } builtin_table;
 
 /* Function prototypes*/
@@ -76,9 +76,9 @@ void fork_cmd(info_t *);
 /* Macro definition*/
 #define INFO_INIT \
 {NULL, NULL, NULL, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, \
-        0, 0, 0}
+	0, 0, 0}
 
-#endif 
+#endif
 /* _SHELL_H_ */
 
 /* toem_parser.h */
@@ -244,6 +244,4 @@ int _myunsetenv(info_t *);
 int populate_env_list(info_t *);
 
 #endif
-
-/* toem_getenv
 
