@@ -1,8 +1,7 @@
-Part1 
 #ifndef _SHELL_H_
 #define _SHELL_H_
 
-// Header files
+/* Header files*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,7 +13,7 @@ Part1
 #include <fcntl.h>
 #include <errno.h>
 
-// Constants
+/* Constants*/
 #define READ_BUF_SIZE 1024
 #define WRITE_BUF_SIZE 1024
 #define BUF_FLUSH -1
@@ -26,13 +25,13 @@ Part1
 #define CONVERT_UNSIGNED	2
 #define USE_GETLINE 0
 #define USE_STRTOK 0
-#define HIST_FILE	".simple_shell_history"
+#define HIST_FILE	".main_history"
 #define HIST_MAX	4096
 
-// External variables
+/* External variables*/
 extern char **environ;
 
-// Structures
+/* Structures*/
 typedef struct liststr {
     int num;
     char *str;
@@ -65,19 +64,19 @@ typedef struct builtin {
     int (*func)(info_t *);
 } builtin_table;
 
-// Function prototypes
+/* Function prototypes*/
 int hsh(info_t *, char **);
 int find_builtin(info_t *);
 void find_cmd(info_t *);
 void fork_cmd(info_t *);
 
-// Macro definition
+/* Macro definition*/
 #define INFO_INIT \
 {NULL, NULL, NULL, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, \
         0, 0, 0}
 
 #endif /* _SHELL_H_ */
-Part2
+
 /* toem_parser.h */
 #ifndef TOEM_PARSER_H
 #define TOEM_PARSER_H
