@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 1024
+
+/**
+ * get_line - reads an entire line from stream
+ *
+ * Return: line on success, NULL on failure or end of file
+ */
+char *get_line(void)
+{
+    static char buffer[BUFFER_SIZE];
+    static char *line;
+    char *temp;
+    size_t size = 0;
+    ssize_t n;
+
+    while ((n = read(STDIN_FILENO, buffer, BUFFER_SIZE)) > 0)
+    {
+        temp = realloc(line, size + n);
+        if (!temp)
+        {
+            perror("Allocation error");
+            free(line);
+            return (NULL);
+        }
+        line = temp;
+        for (size_t i = 0; i < n; i++)
+        {
+            if (buffer[i] == '\n')
+            {
+                line[size + i] = '\0';
+                return (line);
+            }
+            line[size + i] = buffer[i];
+        }
+        size += n;
+    }
+
+    if (n == -1)
+    {
+        perror("Read error");
+        free(line);
+        return (NULL);
+    }
+
+    free(line);
+    return (NULL);
+}
+
+int main(void)
+{
+    char *line;
+
+    while ((line = get_line()))
+    {
+        printf("You entered: %s\n", line);
+        free(line);
+    }
+
+    return (0);
+}
