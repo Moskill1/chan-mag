@@ -67,8 +67,7 @@ struct liststr *next;
  * @readfd: the fd from which to read line input
  * @histcount: the history line number count
  * @environ: variable is a global variable that is used to store
- * struct builtin : A struct representing a built-in command.
- *
+ * @struct builtin: A pointer to an array of environment variables.
  */
 
 typedef struct passinfo
@@ -94,12 +93,6 @@ int readfd;
 int histcount;
 } info_t;
 
-/**
- * brief: Represents a built-in command.
- * struct builtin : shown below
- * This structure is used to store information about a built-in command, such a
- * name and the function that should be called when the command is executed.
- */
 typedef struct builtin
 {
 char *type;
@@ -116,9 +109,9 @@ void fork_cmd(info_t *);
 #define INFO_INIT \
 {NULL, NULL, NULL, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, \
 	0, 0, 0}
-#ifndef _SHELL_H_
-#define _SHELL_H_
-#endif/* _SHELL_H_ */
+
+#endif
+/* _SHELL_H_ */
 
 /* toem_parser.h */
 #ifndef TOEM_PARSER_H
