@@ -1,0 +1,124 @@
+#include "main.h"
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#define BUFFER_SIZE 1024
+
+/**
+ * main - entry point
+ *
+ * Return: Always 0 (success)
+ */
+int main(void)
+{
+    char *line_buffer = NULL;
+    size_t buffer_size = 0;
+    pid_t pid;
+    int status;
+    int pipefd[2];
+
+    while (1)
+    {
+        write(STDOUT_FILENO, "$ ", 2);
+
+        if (getline(&line_buffer, &buffer_size, stdin) == -1)
+        {
+            if (line_buffer)
+                free(line_buffer);
+            write(STDOUT_FILENO, "\n", 1);
+            break;
+        }
+
+        line_buffer[strlen(line_buffer) - 1] = '\0';
+
+        char *command = strtok(line_buffer, " ");
+        if (command == NULL)
+        {
+            /* No command entered */
+            continue;
+        }
+
+        /* Search for command in PATH */
+        char *path = getenv("PATH");
+        char *path_copy = strdup(path);
+        char *dir = strtok(path_copy, ":");
+        char command_path[BUFFER_SIZE];
+
+        while (dir != NULL)
+        {
+            snprintf(command_path, BUFFER_SIZE, "%s/%s", dir, command);
+            if (access(command_path, X_OK) == 0)
+            {
+                /* Command found in directory */
+                break;
+            }
+            dir = strtok(NULL, ":");
+        }
+        free(path_copy);
+
+        if (dir == NULL)
+        {
+            /* Command not found in any directory in PATH */
+            write(STDERR_FILENO, "Command not found\n", 18);
+            continue;
+        }
+
+        pid = fork();
+        if (pid == -1)
+        {
+            perror("Fork error");
+            continue;
+        }
+        if (pid == 0)
+        {
+            /* Child process executes command */
+            char *args[256];
+            int arg_count = 0;
+            while (arg_count < 255 && command != NULL)
+            {
+                args[arg_count++] = command;
+                command = strtok(NULL, " ");
+            }
+            args[arg_count] = NULL;
+
+            /* Redirect stdout to the parent process */
+            if (pipe(pipefd) == -1)
+            {
+                perror("Pipe error");
+                _exit(EXIT_FAILURE);
+            }
+            dup2(pipefd[1], STDOUT_FILENO);
+            close(pipefd[0]);
+
+            execvp(command_path, args);
+            /* If execve fails, print error message and exit */
+            char error_message[BUFFER_SIZE];
+            snprintf(error_message, BUFFER_SIZE, "%s: command not found\n", args[0]);
+            write(STDERR_FILENO, error_message, strlen(error_message));
+            _exit(EXIT_FAILURE);
+        }
+        else
+        {
+            /* Parent process reads output from child process */
+            char buffer[BUFFER_SIZE];
+            int nbytes = 0;
+
+            close(pipefd[1]);
+            while ((nbytes = read(pipefd[0], buffer, BUFFER_SIZE)) > 0)
+            {
+                write(STDOUT_FILENO, buffer, nbytes);
+            }
+            close(pipefd[0]);
+
+            /* Parent process waits for child to complete */
+            do {
+                waitpid(pid, &status, WUNTRACED);
+            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+        }
+    }
+    return (0);
+}
